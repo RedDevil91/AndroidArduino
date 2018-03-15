@@ -2,24 +2,26 @@ package com.example.reddevil91.orientationtest;
 
 import android.content.Context;
 import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.MotionEvent;
 import android.widget.TextView;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements SensorEventListener {
     private SensorManager sensorManager;
+    private Sensor accelerometer, magnetometer;
     private float orientation[];
-    private Listener acc_listener, mag_listener;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.orientation);
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-        acc_listener = new Listener(sensorManager, Sensor.TYPE_ACCELEROMETER);
-        mag_listener = new Listener(sensorManager, Sensor.TYPE_MAGNETIC_FIELD);
+        accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        magnetometer = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
     }
 
     @Override
@@ -38,14 +40,28 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        sensorManager.unregisterListener(acc_listener);
-        sensorManager.unregisterListener(mag_listener);
+        sensorManager.unregisterListener(this);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        sensorManager.registerListener(acc_listener, acc_listener.sensor, SensorManager.SENSOR_DELAY_NORMAL);
-        sensorManager.registerListener(mag_listener, mag_listener.sensor, SensorManager.SENSOR_DELAY_NORMAL);
+        sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
+        sensorManager.registerListener(this, magnetometer, SensorManager.SENSOR_DELAY_NORMAL);
+    }
+
+    @Override
+    public void onSensorChanged(SensorEvent sensorEvent) {
+        if (sensorEvent.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
+            orientation = sensorEvent.values;
+        }
+        else if (sensorEvent.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD) {
+            orientation = sensorEvent.values;
+        }
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int i) {
+        //do nothing
     }
 }
