@@ -56,9 +56,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             TextView pitch = findViewById(R.id.pitch);
             TextView yaw = findViewById(R.id.yaw);
 
-            roll.setText(String.format(getString(R.string.roll), orientation[0]));
-            pitch.setText(String.format(getString(R.string.pitch), orientation[1]));
-            yaw.setText(String.format(getString(R.string.yaw), orientation[2]));
+            roll.setText(String.format(getString(R.string.roll), Math.toDegrees(orientation[1])));
+            pitch.setText(String.format(getString(R.string.pitch), Math.toDegrees(orientation[2])));
+            yaw.setText(String.format(getString(R.string.yaw), Math.toDegrees(orientation[0])));
         }
     }
 
