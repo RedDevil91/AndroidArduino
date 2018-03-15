@@ -13,7 +13,7 @@ import android.widget.TextView;
 public class MainActivity extends AppCompatActivity implements SensorEventListener {
     private SensorManager sensorManager;
     private Sensor accelerometer, magnetometer;
-    private float orientation[];
+    private float orientation[], acc_values[], mag_values[];
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -22,19 +22,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         magnetometer = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
-    }
-
-    @Override
-    public boolean onTouchEvent(MotionEvent event) {
-        TextView roll = findViewById(R.id.roll_value);
-        TextView pitch = findViewById(R.id.pitch_value);
-        TextView yaw = findViewById(R.id.yaw_value);
-
-        roll.setText("Test");
-        pitch.setText("Test");
-        yaw.setText("Test");
-
-        return super.onTouchEvent(event);
     }
 
     @Override
@@ -53,10 +40,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     @Override
     public void onSensorChanged(SensorEvent sensorEvent) {
         if (sensorEvent.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
-            orientation = sensorEvent.values;
+            acc_values = sensorEvent.values;
         }
         else if (sensorEvent.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD) {
-            orientation = sensorEvent.values;
+            mag_values = sensorEvent.values;
+        }
+
+        if (acc_values != null && mag_values != null) {
+            float R_M[], I_M[];
+//            sensorManager.getRotationMatrix(R_M, I_M, acc_values, mag_values);
         }
     }
 
