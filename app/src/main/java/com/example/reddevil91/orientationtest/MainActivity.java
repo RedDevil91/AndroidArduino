@@ -7,13 +7,13 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.view.MotionEvent;
 import android.widget.TextView;
 
 public class MainActivity extends AppCompatActivity implements SensorEventListener {
     private SensorManager sensorManager;
     private Sensor accelerometer, magnetometer;
-    private float orientation[], acc_values[], mag_values[];
+    private float acc_values[], mag_values[];
+    private float[] orientation = new float[3];
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,8 +47,18 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
 
         if (acc_values != null && mag_values != null) {
-            float R_M[], I_M[];
-//            sensorManager.getRotationMatrix(R_M, I_M, acc_values, mag_values);
+            float R_M[] = new float[9];
+            float I_M[] = new float[9];
+            sensorManager.getRotationMatrix(R_M, I_M, acc_values, mag_values);
+            sensorManager.getOrientation(R_M, orientation);
+
+            TextView roll = findViewById(R.id.roll);
+            TextView pitch = findViewById(R.id.pitch);
+            TextView yaw = findViewById(R.id.yaw);
+
+            roll.setText(String.format(getString(R.string.roll), orientation[0]));
+            pitch.setText(String.format(getString(R.string.pitch), orientation[1]));
+            yaw.setText(String.format(getString(R.string.yaw), orientation[2]));
         }
     }
 
