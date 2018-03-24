@@ -9,8 +9,10 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.view.MotionEvent;
+import android.view.View;
+import android.widget.AdapterView;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.ListView;
 import android.widget.Toast;
 
@@ -20,6 +22,7 @@ import java.util.Set;
 public class MainActivity extends AppCompatActivity {
     private BluetoothAdapter bluetoothAdapter;
     private static final int REQUEST_ENABLE_BT = 1;
+    private int selectedPosition = -1;
     ArrayList<DetectedDevice> device_list = new ArrayList<>();
 
     @Override
@@ -27,37 +30,45 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-//        Button connect_btn = findViewById(R.id.connect_btn);
-
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         if (!bluetoothAdapter.isEnabled()) {
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
         }
         else {
-//            enableButton(connect_btn);
-            getPairedDevices();
             IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
             registerReceiver(mReceiver, filter);
+            bluetoothAdapter.startDiscovery();
         }
-
-        device_list.add(new DetectedDevice("Test1", "0123", true));
-        device_list.add(new DetectedDevice("Test2", "0123", false));
-        device_list.add(new DetectedDevice("Test3", "0123", true));
 
         DeviceAdapter device_adapter = new DeviceAdapter(this, device_list);
 
-        ListView devices = findViewById(R.id.device_list);
-        devices.setAdapter(device_adapter);
-    }
+        ListView device_listview = findViewById(R.id.device_list);
+        device_listview.setAdapter(device_adapter);
 
-    @Override
-    public boolean onTouchEvent(MotionEvent event) {
-        device_list.add(new DetectedDevice("New1", "4321", true));
-        ListView devices = findViewById(R.id.device_list);
-        DeviceAdapter adapter = (DeviceAdapter) devices.getAdapter();
-        adapter.notifyDataSetChanged();
-        return super.onTouchEvent(event);
+        device_listview.setOnItemClickListener(new AdapterView.OnItemClickListener(){
+
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int pos, long id) {
+                if (selectedPosition != pos && selectedPosition != -1) {
+                    ListView dev_list = findViewById(R.id.device_list);
+                    View dev_view = dev_list.getChildAt(selectedPosition);
+                    CheckBox prev_dev = dev_view.findViewById(R.id.selected);
+                    prev_dev.setChecked(false);
+                }
+                CheckBox connect = view.findViewById(R.id.selected);
+                connect.setChecked(!connect.isChecked());
+                Button connect_btn = findViewById(R.id.connect_btn);
+                if (connect.isChecked()) {
+                    selectedPosition = pos;
+                    connect_btn.setEnabled(true);
+                }
+                else {
+                    selectedPosition = -1;
+                    connect_btn.setEnabled(false);
+                }
+            }
+        });
     }
 
     private void getPairedDevices(){
@@ -65,14 +76,15 @@ public class MainActivity extends AppCompatActivity {
 
         if (pairedDevices.size() > 0) {
             // There are paired devices. Get the name and address of each paired device.
+            ListView devices = findViewById(R.id.device_list);
+            DeviceAdapter adapter = (DeviceAdapter) devices.getAdapter();
             for (BluetoothDevice device : pairedDevices) {
                 String deviceName = device.getName();
                 String deviceHardwareAddress = device.getAddress(); // MAC address
-                Toast.makeText(getApplicationContext(), "Paired with device: " + deviceName, Toast.LENGTH_SHORT).show();
+                DetectedDevice dev = new DetectedDevice(deviceName, deviceHardwareAddress, device.getBondState() == BluetoothDevice.BOND_BONDED);
+                device_list.add(dev);
             }
-        }
-        else {
-            Toast.makeText(getApplicationContext(), "Failed to find paired devices!", Toast.LENGTH_SHORT).show();
+            adapter.notifyDataSetChanged();
         }
     }
 
@@ -86,34 +98,23 @@ public class MainActivity extends AppCompatActivity {
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
                 String deviceName = device.getName();
                 String deviceHardwareAddress = device.getAddress(); // MAC address
-//                DetectedDevice dev = new DetectedDevice(deviceName, deviceHardwareAddress);
-                Toast.makeText(getApplicationContext(), "Available device found: " + deviceName, Toast.LENGTH_SHORT).show();
+                DetectedDevice dev = new DetectedDevice(deviceName, deviceHardwareAddress, device.getBondState() == BluetoothDevice.BOND_BONDED);
+                device_list.add(dev);
+                ListView devices = findViewById(R.id.device_list);
+                DeviceAdapter adapter = (DeviceAdapter) devices.getAdapter();
+                adapter.notifyDataSetChanged();
             }
         }
     };
-
-    private void enableButton(Button button){
-        // Register for broadcasts when a device is discovered.
-        IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
-        registerReceiver(mReceiver, filter);
-//        button.setEnabled(true);
-//        button.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View view) {
-//                bluetoothAdapter.startDiscovery();
-//            }
-//        });
-    }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == REQUEST_ENABLE_BT && resultCode == Activity.RESULT_OK){
             Toast.makeText(getApplicationContext(), "Bluetooth enabled!", Toast.LENGTH_SHORT).show();
-//            enableButton((Button) findViewById(R.id.bluetooth_btn));
-            getPairedDevices();
             IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
             registerReceiver(mReceiver, filter);
+            bluetoothAdapter.startDiscovery();
         }
         else if (requestCode == REQUEST_ENABLE_BT && resultCode == Activity.RESULT_CANCELED) {
             Toast.makeText(getApplicationContext(), "Bluetooth is disabled!", Toast.LENGTH_SHORT).show();

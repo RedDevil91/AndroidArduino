@@ -36,11 +36,9 @@ public class DeviceAdapter extends ArrayAdapter {
 
         TextView name = device_view.findViewById(R.id.dev_name);
         TextView address = device_view.findViewById(R.id.dev_address);
-        CheckBox ispaired = device_view.findViewById(R.id.paired);
 
         name.setText(device.getBluetoothDeviceName());
         address.setText(device.getBluetoothDeviceAddress());
-        ispaired.setChecked(device.isBluetoothDevicePaired());
 
         return device_view;
     }
