@@ -3,34 +3,31 @@ package com.example.reddevil91.orientationtest;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.hardware.Sensor;
-import android.hardware.SensorEvent;
-import android.hardware.SensorEventListener;
-import android.hardware.SensorManager;
+import android.content.IntentFilter;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.widget.TextView;
+import android.view.MotionEvent;
+import android.widget.Button;
+import android.widget.ListView;
 import android.widget.Toast;
+
+import java.util.ArrayList;
 import java.util.Set;
 
-public class MainActivity extends AppCompatActivity implements SensorEventListener {
-    private SensorManager sensorManager;
-    private Sensor accelerometer, magnetometer;
+public class MainActivity extends AppCompatActivity {
     private BluetoothAdapter bluetoothAdapter;
-    private float acc_values[], mag_values[];
-    private float[] orientation = new float[3];
     private static final int REQUEST_ENABLE_BT = 1;
-
+    ArrayList<DetectedDevice> device_list = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.orientation);
-        sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-        accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-        magnetometer = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
+        setContentView(R.layout.activity_main);
+
+//        Button connect_btn = findViewById(R.id.connect_btn);
 
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         if (!bluetoothAdapter.isEnabled()) {
@@ -38,8 +35,29 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
         }
         else {
+//            enableButton(connect_btn);
             getPairedDevices();
+            IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
+            registerReceiver(mReceiver, filter);
         }
+
+        device_list.add(new DetectedDevice("Test1", "0123", true));
+        device_list.add(new DetectedDevice("Test2", "0123", false));
+        device_list.add(new DetectedDevice("Test3", "0123", true));
+
+        DeviceAdapter device_adapter = new DeviceAdapter(this, device_list);
+
+        ListView devices = findViewById(R.id.device_list);
+        devices.setAdapter(device_adapter);
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        device_list.add(new DetectedDevice("New1", "4321", true));
+        ListView devices = findViewById(R.id.device_list);
+        DeviceAdapter adapter = (DeviceAdapter) devices.getAdapter();
+        adapter.notifyDataSetChanged();
+        return super.onTouchEvent(event);
     }
 
     private void getPairedDevices(){
@@ -58,12 +76,44 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
     }
 
+    // Create a BroadcastReceiver for ACTION_FOUND.
+    private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if (BluetoothDevice.ACTION_FOUND.equals(action)) {
+                // Discovery has found a device. Get the BluetoothDevice
+                // object and its info from the Intent.
+                BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                String deviceName = device.getName();
+                String deviceHardwareAddress = device.getAddress(); // MAC address
+//                DetectedDevice dev = new DetectedDevice(deviceName, deviceHardwareAddress);
+                Toast.makeText(getApplicationContext(), "Available device found: " + deviceName, Toast.LENGTH_SHORT).show();
+            }
+        }
+    };
+
+    private void enableButton(Button button){
+        // Register for broadcasts when a device is discovered.
+        IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
+        registerReceiver(mReceiver, filter);
+//        button.setEnabled(true);
+//        button.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View view) {
+//                bluetoothAdapter.startDiscovery();
+//            }
+//        });
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == REQUEST_ENABLE_BT && resultCode == Activity.RESULT_OK){
             Toast.makeText(getApplicationContext(), "Bluetooth enabled!", Toast.LENGTH_SHORT).show();
+//            enableButton((Button) findViewById(R.id.bluetooth_btn));
             getPairedDevices();
+            IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
+            registerReceiver(mReceiver, filter);
         }
         else if (requestCode == REQUEST_ENABLE_BT && resultCode == Activity.RESULT_CANCELED) {
             Toast.makeText(getApplicationContext(), "Bluetooth is disabled!", Toast.LENGTH_SHORT).show();
@@ -71,45 +121,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     @Override
-    protected void onPause() {
-        super.onPause();
-        sensorManager.unregisterListener(this);
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
-        sensorManager.registerListener(this, magnetometer, SensorManager.SENSOR_DELAY_NORMAL);
-    }
-
-    @Override
-    public void onSensorChanged(SensorEvent sensorEvent) {
-        if (sensorEvent.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
-            acc_values = sensorEvent.values;
-        }
-        else if (sensorEvent.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD) {
-            mag_values = sensorEvent.values;
-        }
-
-        if (acc_values != null && mag_values != null) {
-            float R_M[] = new float[9];
-            float I_M[] = new float[9];
-            sensorManager.getRotationMatrix(R_M, I_M, acc_values, mag_values);
-            sensorManager.getOrientation(R_M, orientation);
-
-            TextView roll = findViewById(R.id.roll);
-            TextView pitch = findViewById(R.id.pitch);
-            TextView yaw = findViewById(R.id.yaw);
-
-            roll.setText(String.format(getString(R.string.roll), Math.toDegrees(orientation[1])));
-            pitch.setText(String.format(getString(R.string.pitch), Math.toDegrees(orientation[2])));
-            yaw.setText(String.format(getString(R.string.yaw), Math.toDegrees(orientation[0])));
-        }
-    }
-
-    @Override
-    public void onAccuracyChanged(Sensor sensor, int i) {
-        //do nothing
+    protected void onDestroy() {
+        super.onDestroy();
+        unregisterReceiver(mReceiver);
     }
 }

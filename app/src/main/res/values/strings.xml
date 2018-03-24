@@ -3,4 +3,6 @@
     <string name="roll">Roll: %.4f</string>
     <string name="pitch">Pitch: %.4f</string>
     <string name="yaw">Yaw: %.4f</string>
+    <string name="start_stream">Start Stream</string>
+    <string name="connect">Connect</string>
 </resources>
