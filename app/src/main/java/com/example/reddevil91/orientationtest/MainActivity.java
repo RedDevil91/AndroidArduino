@@ -22,6 +22,8 @@ import java.util.Set;
 public class MainActivity extends AppCompatActivity {
     private BluetoothAdapter bluetoothAdapter;
     private static final int REQUEST_ENABLE_BT = 1;
+    public static final String EXTRA_NAME = "extra_name";
+    public static final String EXTRA_ADDRESS = "extra_address";
     private int selectedPosition = -1;
     ArrayList<DetectedDevice> device_list = new ArrayList<>();
 
@@ -36,9 +38,7 @@ public class MainActivity extends AppCompatActivity {
             startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
         }
         else {
-            IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
-            registerReceiver(mReceiver, filter);
-            bluetoothAdapter.startDiscovery();
+            registerIntentFilters();
         }
 
         DeviceAdapter device_adapter = new DeviceAdapter(this, device_list);
@@ -66,6 +66,24 @@ public class MainActivity extends AppCompatActivity {
                 else {
                     selectedPosition = -1;
                     connect_btn.setEnabled(false);
+                }
+            }
+        });
+
+        Button connect_btn = findViewById(R.id.connect_btn);
+
+        connect_btn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (selectedPosition > -1) {
+                    DetectedDevice selectedDevice = device_list.get(selectedPosition);
+                    BluetoothDevice device = bluetoothAdapter.getRemoteDevice(selectedDevice.getBluetoothDeviceAddress());
+                    if (device.getBondState() != BluetoothDevice.BOND_BONDED) {
+                        device.createBond();
+                    }
+                    else {
+                        startSensorActivity(selectedDevice);
+                    }
                 }
             }
         });
@@ -104,17 +122,37 @@ public class MainActivity extends AppCompatActivity {
                 DeviceAdapter adapter = (DeviceAdapter) devices.getAdapter();
                 adapter.notifyDataSetChanged();
             }
+            else if (BluetoothDevice.ACTION_BOND_STATE_CHANGED.equals(action)) {
+                DetectedDevice selectedDevice = device_list.get(selectedPosition);
+                BluetoothDevice dev = bluetoothAdapter.getRemoteDevice(selectedDevice.getBluetoothDeviceAddress());
+                if (dev.getBondState() == BluetoothDevice.BOND_BONDED)
+                {
+                    startSensorActivity(selectedDevice);
+                }
+            }
         }
     };
+
+    private void startSensorActivity(DetectedDevice device){
+        bluetoothAdapter.cancelDiscovery();
+        Intent i = new Intent(MainActivity.this, SensorActivity.class);
+        i.putExtra(EXTRA_NAME, device.getBluetoothDeviceName());
+        i.putExtra(EXTRA_ADDRESS, device.getBluetoothDeviceAddress());
+        startActivity(i);
+    }
+
+    private void registerIntentFilters(){
+        registerReceiver(mReceiver, new IntentFilter(BluetoothDevice.ACTION_FOUND));
+        registerReceiver(mReceiver, new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED));
+        bluetoothAdapter.startDiscovery();
+    }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == REQUEST_ENABLE_BT && resultCode == Activity.RESULT_OK){
             Toast.makeText(getApplicationContext(), "Bluetooth enabled!", Toast.LENGTH_SHORT).show();
-            IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
-            registerReceiver(mReceiver, filter);
-            bluetoothAdapter.startDiscovery();
+            registerIntentFilters();
         }
         else if (requestCode == REQUEST_ENABLE_BT && resultCode == Activity.RESULT_CANCELED) {
             Toast.makeText(getApplicationContext(), "Bluetooth is disabled!", Toast.LENGTH_SHORT).show();
