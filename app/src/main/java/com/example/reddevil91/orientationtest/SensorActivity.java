@@ -36,13 +36,14 @@ public class SensorActivity extends AppCompatActivity implements SensorEventList
 
         Intent i = getIntent();
         final String address = i.getStringExtra(MainActivity.EXTRA_ADDRESS);
+        final UUID uuid = UUID.fromString(i.getStringExtra(MainActivity.EXTRA_UUID));
 
         Button start_btn = findViewById(R.id.bluetooth_btn);
 
         start_btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Thread connect_thread = new ConnectThread(address);
+                Thread connect_thread = new ConnectThread(address, uuid);
                 connect_thread.start();
 //                try {
 //                    connect_thread.join();
@@ -78,8 +79,8 @@ public class SensorActivity extends AppCompatActivity implements SensorEventList
         if (acc_values != null && mag_values != null) {
             float R_M[] = new float[9];
             float I_M[] = new float[9];
-            sensorManager.getRotationMatrix(R_M, I_M, acc_values, mag_values);
-            sensorManager.getOrientation(R_M, orientation);
+            SensorManager.getRotationMatrix(R_M, I_M, acc_values, mag_values);
+            SensorManager.getOrientation(R_M, orientation);
 
             TextView roll = findViewById(R.id.roll);
             TextView pitch = findViewById(R.id.pitch);
@@ -98,9 +99,8 @@ public class SensorActivity extends AppCompatActivity implements SensorEventList
 
     public class ConnectThread extends Thread {
         private final BluetoothSocket mmSocket;
-        private final UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
 
-        ConnectThread(String address) {
+        ConnectThread(String address, UUID uuid) {
             // Use a temporary object that is later assigned to mmSocket
             // because mmSocket is final.
             BluetoothSocket tmp = null;

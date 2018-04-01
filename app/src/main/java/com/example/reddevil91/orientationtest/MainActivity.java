@@ -7,8 +7,10 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.Parcelable;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.Button;
@@ -24,6 +26,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int REQUEST_ENABLE_BT = 1;
     public static final String EXTRA_NAME = "extra_name";
     public static final String EXTRA_ADDRESS = "extra_address";
+    public static final String EXTRA_UUID = "extra_uuid";
     private int selectedPosition = -1;
     ArrayList<DetectedDevice> device_list = new ArrayList<>();
 
@@ -76,17 +79,22 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 if (selectedPosition > -1) {
-                    DetectedDevice selectedDevice = device_list.get(selectedPosition);
-                    BluetoothDevice device = bluetoothAdapter.getRemoteDevice(selectedDevice.getBluetoothDeviceAddress());
+                    BluetoothDevice device = getSelectedDevice();
                     if (device.getBondState() != BluetoothDevice.BOND_BONDED) {
                         device.createBond();
                     }
                     else {
-                        startSensorActivity(selectedDevice);
+                        bluetoothAdapter.cancelDiscovery();
+                        registerReceiver(discoveryReceiver, new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED));
                     }
                 }
             }
         });
+    }
+
+    private BluetoothDevice getSelectedDevice(){
+        DetectedDevice selectedDevice = device_list.get(selectedPosition);
+        return bluetoothAdapter.getRemoteDevice(selectedDevice.getBluetoothDeviceAddress());
     }
 
     private void getPairedDevices(){
@@ -108,6 +116,7 @@ public class MainActivity extends AppCompatActivity {
 
     // Create a BroadcastReceiver for ACTION_FOUND.
     private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
+        @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
             if (BluetoothDevice.ACTION_FOUND.equals(action)) {
@@ -123,27 +132,56 @@ public class MainActivity extends AppCompatActivity {
                 adapter.notifyDataSetChanged();
             }
             else if (BluetoothDevice.ACTION_BOND_STATE_CHANGED.equals(action)) {
-                DetectedDevice selectedDevice = device_list.get(selectedPosition);
-                BluetoothDevice dev = bluetoothAdapter.getRemoteDevice(selectedDevice.getBluetoothDeviceAddress());
+                BluetoothDevice dev = getSelectedDevice();
                 if (dev.getBondState() == BluetoothDevice.BOND_BONDED)
                 {
-                    startSensorActivity(selectedDevice);
+                    bluetoothAdapter.cancelDiscovery();
+                    registerReceiver(discoveryReceiver, new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED));
+                }
+            }
+            else if (BluetoothDevice.ACTION_UUID.equals(action)){
+                BluetoothDevice d = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                Parcelable[] uuidExtra = intent.getParcelableArrayExtra(BluetoothDevice.EXTRA_UUID);
+
+                if(uuidExtra ==  null) {
+                    Log.e("TAG", "UUID = null");
+                }
+                if(d != null && uuidExtra != null){
+                    startSensorActivity(uuidExtra);
                 }
             }
         }
     };
 
-    private void startSensorActivity(DetectedDevice device){
-        bluetoothAdapter.cancelDiscovery();
+    private final BroadcastReceiver discoveryReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)){
+                BluetoothDevice dev = getSelectedDevice();
+                if (dev.getBondState() == BluetoothDevice.BOND_BONDED) {
+                    dev.fetchUuidsWithSdp();
+                    // TODO: with 'this' will this work?
+                    unregisterReceiver(discoveryReceiver);
+//                    unregisterReceiver(this);
+                }
+            }
+        }
+    };
+
+    private void startSensorActivity(Parcelable[] uuids){
+        DetectedDevice device = device_list.get(selectedPosition);
         Intent i = new Intent(MainActivity.this, SensorActivity.class);
         i.putExtra(EXTRA_NAME, device.getBluetoothDeviceName());
         i.putExtra(EXTRA_ADDRESS, device.getBluetoothDeviceAddress());
+        i.putExtra(EXTRA_UUID, uuids[0].toString());
         startActivity(i);
     }
 
     private void registerIntentFilters(){
         registerReceiver(mReceiver, new IntentFilter(BluetoothDevice.ACTION_FOUND));
         registerReceiver(mReceiver, new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED));
+        registerReceiver(mReceiver, new IntentFilter(BluetoothDevice.ACTION_UUID));
         bluetoothAdapter.startDiscovery();
     }
 
@@ -163,5 +201,6 @@ public class MainActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         unregisterReceiver(mReceiver);
+        unregisterReceiver(discoveryReceiver);
     }
 }
