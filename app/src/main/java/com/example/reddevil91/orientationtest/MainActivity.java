@@ -27,6 +27,7 @@ public class MainActivity extends AppCompatActivity {
     public static final String EXTRA_NAME = "extra_name";
     public static final String EXTRA_ADDRESS = "extra_address";
     public static final String EXTRA_UUID = "extra_uuid";
+    private boolean fetchFlag = false;
     private int selectedPosition = -1;
     ArrayList<DetectedDevice> device_list = new ArrayList<>();
 
@@ -34,6 +35,8 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        fetchFlag = false;
 
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         if (!bluetoothAdapter.isEnabled()) {
@@ -146,8 +149,9 @@ public class MainActivity extends AppCompatActivity {
                 if(uuidExtra ==  null) {
                     Log.e("TAG", "UUID = null");
                 }
-                if(d != null && uuidExtra != null){
+                if(d != null && uuidExtra != null && !fetchFlag){
                     startSensorActivity(uuidExtra);
+                    fetchFlag = true;
                 }
             }
         }
@@ -161,9 +165,7 @@ public class MainActivity extends AppCompatActivity {
                 BluetoothDevice dev = getSelectedDevice();
                 if (dev.getBondState() == BluetoothDevice.BOND_BONDED) {
                     dev.fetchUuidsWithSdp();
-                    // TODO: with 'this' will this work?
                     unregisterReceiver(discoveryReceiver);
-//                    unregisterReceiver(this);
                 }
             }
         }
