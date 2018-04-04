@@ -35,6 +35,22 @@ public class SensorActivity extends AppCompatActivity implements SensorEventList
     private float acc_values[], mag_values[];
     private float[] orientation = new float[3];
 
+    private final int CYCLE_TIME = 250;
+    private Handler timerHandler = new Handler();
+    private Runnable timerEvent = new Runnable() {
+        @Override
+        public void run() {
+            float[] buffer = new float[3];
+            System.arraycopy(orientation, 0, buffer, 0, buffer.length);
+            String message = String.format("Angles: %d, %d, %d\r\n",
+                    Math.round(Math.toDegrees(buffer[0])),
+                    Math.round(Math.toDegrees(buffer[1])),
+                    Math.round(Math.toDegrees(buffer[2])));
+            connection.write(message.getBytes());
+            timerHandler.postDelayed(this, CYCLE_TIME);
+        }
+    };
+
     private interface MessageConstants{
         static final int READ = 0;
         static final int WRITE = 1;
@@ -72,13 +88,7 @@ public class SensorActivity extends AppCompatActivity implements SensorEventList
         start_btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                float[] buffer = new float[3];
-                System.arraycopy(orientation, 0, buffer, 0, buffer.length);
-                String message = String.format("Angles: %d, %d, %d\r\n",
-                        Math.round(Math.toDegrees(buffer[0])),
-                        Math.round(Math.toDegrees(buffer[1])),
-                        Math.round(Math.toDegrees(buffer[2])));
-                connection.write(message.getBytes());
+                timerHandler.postDelayed(timerEvent, CYCLE_TIME);
             }
         });
     }
