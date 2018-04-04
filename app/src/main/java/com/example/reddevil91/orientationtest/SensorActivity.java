@@ -20,8 +20,10 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.UUID;
 
@@ -44,7 +46,7 @@ public class SensorActivity extends AppCompatActivity implements SensorEventList
         @Override
         public void handleMessage(Message msg) {
             if (msg.what == MessageConstants.READ){
-                connection.write((byte[]) msg.obj);
+                connection.write(new String((char[]) msg.obj).getBytes());
             }
             super.handleMessage(msg);
         }
@@ -64,11 +66,19 @@ public class SensorActivity extends AppCompatActivity implements SensorEventList
 
         Button start_btn = findViewById(R.id.bluetooth_btn);
 
+        Thread connect_thread = new ConnectThread(address, uuid);
+        connect_thread.start();
+
         start_btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Thread connect_thread = new ConnectThread(address, uuid);
-                connect_thread.start();
+                float[] buffer = new float[3];
+                System.arraycopy(orientation, 0, buffer, 0, buffer.length);
+                String message = String.format("Angles: %d, %d, %d\r\n",
+                        Math.round(Math.toDegrees(buffer[0])),
+                        Math.round(Math.toDegrees(buffer[1])),
+                        Math.round(Math.toDegrees(buffer[2])));
+                connection.write(message.getBytes());
             }
         });
     }
@@ -166,9 +176,9 @@ public class SensorActivity extends AppCompatActivity implements SensorEventList
 
     private class ConnectedThread extends Thread {
         private final BluetoothSocket mmSocket;
-        private final InputStream mmInStream;
+        private final BufferedReader mmInStream;
         private final OutputStream mmOutStream;
-        private byte[] mmBuffer; // mmBuffer store for the stream
+        private char[] mmBuffer; // mmBuffer store for the stream
 
         public ConnectedThread(BluetoothSocket socket) {
             mmSocket = socket;
@@ -188,37 +198,29 @@ public class SensorActivity extends AppCompatActivity implements SensorEventList
                 Log.e(TAG, "Error occurred when creating output stream", e);
             }
 
-            mmInStream = tmpIn;
+            mmInStream = new BufferedReader(new InputStreamReader(tmpIn));
             mmOutStream = tmpOut;
         }
 
         public void run() {
             int numBytes; // bytes returned from read()
             int offset;
-
+            mmBuffer = new char[1024];
             // Keep listening to the InputStream until an exception occurs.
             while (true) {
                 try {
                     // Read from the InputStream.
-                    mmBuffer = new byte[1024];
-                    numBytes = mmInStream.read(mmBuffer);
-                    offset = numBytes;
-                    while(mmBuffer.length - offset != 0){
-                        numBytes = mmInStream.read(mmBuffer, offset, mmBuffer.length - offset);
-                        offset += numBytes;
-                        if (mmInStream.available() == 0) {
-                            Log.i(TAG,"NumBytes: " + numBytes);
-                            break;
-                        }
+                    if (mmInStream.ready()) {
+                        // copy buffer to prevent buffer modifications while send message to handler
+                        numBytes = mmInStream.read(mmBuffer, 0, mmBuffer.length);
+                        char[] copy_array = new char[numBytes];
+                        System.arraycopy(mmBuffer, 0, copy_array, 0, numBytes);
+                        // Send the obtained bytes to the UI activity.
+                        Message readMsg = mHandler.obtainMessage(
+                                MessageConstants.READ, numBytes, -1,
+                                copy_array);
+                        readMsg.sendToTarget();
                     }
-                    // copy buffer to prevent buffer modifications while send message to handler
-                    byte[] copy_array = new byte[1024];
-                    System.arraycopy(mmBuffer, 0, copy_array, 0, mmBuffer.length);
-                    // Send the obtained bytes to the UI activity.
-                    Message readMsg = mHandler.obtainMessage(
-                            MessageConstants.READ, numBytes, -1,
-                            copy_array);
-                    readMsg.sendToTarget();
                 } catch (IOException e) {
                     Log.d(TAG, "Input stream was disconnected", e);
                     break;
