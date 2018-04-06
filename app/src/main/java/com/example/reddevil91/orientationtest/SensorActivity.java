@@ -42,14 +42,26 @@ public class SensorActivity extends AppCompatActivity implements SensorEventList
         public void run() {
             float[] buffer = new float[3];
             System.arraycopy(orientation, 0, buffer, 0, buffer.length);
-            String message = String.format("Angles: %d, %d, %d\r\n",
-                    Math.round(Math.toDegrees(buffer[0])),
-                    Math.round(Math.toDegrees(buffer[1])),
-                    Math.round(Math.toDegrees(buffer[2])));
-            connection.write(message.getBytes());
+            byte[] out_message = createBluetoothMessage(buffer);
+            connection.write(out_message);
             timerHandler.postDelayed(this, CYCLE_TIME);
         }
     };
+
+    private byte[] createBluetoothMessage(float[] orientation_buffer){
+        byte[] message = new byte[6];
+        for (int i=0; i<orientation_buffer.length; i ++){
+            int tmp = (int) Math.round(Math.toDegrees(orientation_buffer[i]));
+            if (tmp < 0) {
+                message[2*i] = 1;
+            }
+            else {
+                message[2*i] = 0;
+            }
+            message[2*i+1] = (byte) Math.abs(tmp);
+        }
+        return message;
+    }
 
     private interface MessageConstants{
         static final int READ = 0;
