@@ -88,12 +88,19 @@ public class MainActivity extends AppCompatActivity {
                         device.createBond();
                     }
                     else {
-                        bluetoothAdapter.cancelDiscovery();
-                        registerReceiver(discoveryReceiver, new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED));
+                        startConnecting();
                     }
                 }
             }
         });
+    }
+
+    private void startConnecting(){
+        ProgressBar spinner = findViewById(R.id.spinner);
+        spinner.setVisibility(View.VISIBLE);
+        Toast.makeText(getApplicationContext(), "Connecting...", Toast.LENGTH_SHORT).show();
+        bluetoothAdapter.cancelDiscovery();
+        registerReceiver(discoveryReceiver, new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED));
     }
 
     private BluetoothDevice getSelectedDevice(){
@@ -141,8 +148,7 @@ public class MainActivity extends AppCompatActivity {
                 BluetoothDevice dev = getSelectedDevice();
                 if (dev.getBondState() == BluetoothDevice.BOND_BONDED)
                 {
-                    bluetoothAdapter.cancelDiscovery();
-                    registerReceiver(discoveryReceiver, new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED));
+                    startConnecting();
                 }
             }
             else if (BluetoothDevice.ACTION_UUID.equals(action)){
@@ -180,6 +186,8 @@ public class MainActivity extends AppCompatActivity {
         i.putExtra(EXTRA_NAME, device.getBluetoothDeviceName());
         i.putExtra(EXTRA_ADDRESS, device.getBluetoothDeviceAddress());
         i.putExtra(EXTRA_UUID, uuids[0].toString());
+        ProgressBar spinner = findViewById(R.id.spinner);
+        spinner.setVisibility(View.GONE);
         startActivity(i);
     }
 
