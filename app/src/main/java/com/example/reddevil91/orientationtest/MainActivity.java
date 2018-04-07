@@ -16,6 +16,7 @@ import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.ListView;
+import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import java.util.ArrayList;
@@ -125,6 +126,8 @@ public class MainActivity extends AppCompatActivity {
             if (BluetoothDevice.ACTION_FOUND.equals(action)) {
                 // Discovery has found a device. Get the BluetoothDevice
                 // object and its info from the Intent.
+                ProgressBar spinner = findViewById(R.id.spinner);
+                spinner.setVisibility(View.GONE);
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
                 String deviceName = device.getName();
                 String deviceHardwareAddress = device.getAddress(); // MAC address
@@ -185,6 +188,8 @@ public class MainActivity extends AppCompatActivity {
         registerReceiver(mReceiver, new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED));
         registerReceiver(mReceiver, new IntentFilter(BluetoothDevice.ACTION_UUID));
         bluetoothAdapter.startDiscovery();
+        ProgressBar spinner = findViewById(R.id.spinner);
+        spinner.setVisibility(View.VISIBLE);
     }
 
     @Override
@@ -196,6 +201,7 @@ public class MainActivity extends AppCompatActivity {
         }
         else if (requestCode == REQUEST_ENABLE_BT && resultCode == Activity.RESULT_CANCELED) {
             Toast.makeText(getApplicationContext(), "Bluetooth is disabled!", Toast.LENGTH_SHORT).show();
+            // TODO: create a enable bluetooth notification or sg
         }
     }
 
