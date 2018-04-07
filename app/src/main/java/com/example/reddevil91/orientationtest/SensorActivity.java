@@ -17,6 +17,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -101,6 +102,29 @@ public class SensorActivity extends AppCompatActivity implements SensorEventList
             @Override
             public void onClick(View view) {
                 timerHandler.postDelayed(timerEvent, CYCLE_TIME);
+            }
+        });
+
+        SeekBar speed = findViewById(R.id.speed);
+
+        TextView speed_value = findViewById(R.id.speed_value);
+        speed_value.setText(String.format(getString(R.string.speed_val), speed.getProgress()));
+
+        speed.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                TextView value = findViewById(R.id.speed_value);
+                value.setText(String.format(getString(R.string.speed_val), progress));
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
             }
         });
     }
