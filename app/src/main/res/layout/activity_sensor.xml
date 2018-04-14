@@ -12,12 +12,12 @@
         android:text="@string/roll" />
 
     <TextView
+        android:id="@+id/pitch"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_centerHorizontal="true"
+        android:layout_alignEnd="@+id/speed_value"
         android:layout_below="@+id/roll"
-        android:id="@+id/pitch"
-        android:text="@string/pitch"/>
+        android:text="@string/pitch" />
 
     <TextView
         android:layout_width="wrap_content"
@@ -39,7 +39,7 @@
     <SeekBar
         android:id="@+id/speed"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="30dp"
         android:layout_below="@+id/yaw"
         android:layout_marginTop="50dp"
         android:max="100"
@@ -52,6 +52,15 @@
         android:text="@string/speed_val"
         android:layout_centerHorizontal="true"
         android:layout_below="@+id/speed"
+        android:layout_marginTop="20dp"/>
+
+    <CheckBox
+        android:id="@+id/start_stop"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:text="@string/start_stop"
+        android:layout_below="@id/bluetooth_btn"
         android:layout_marginTop="20dp"/>
 
 </RelativeLayout>

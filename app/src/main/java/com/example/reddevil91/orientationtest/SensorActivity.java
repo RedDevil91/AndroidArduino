@@ -17,6 +17,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -36,7 +37,7 @@ public class SensorActivity extends AppCompatActivity implements SensorEventList
     private float acc_values[], mag_values[];
     private float[] orientation = new float[3];
 
-    private final int CYCLE_TIME = 250;
+    private final int CYCLE_TIME = 200;
     private Handler timerHandler = new Handler();
     private Runnable timerEvent = new Runnable() {
         @Override
@@ -50,7 +51,7 @@ public class SensorActivity extends AppCompatActivity implements SensorEventList
     };
 
     private byte[] createBluetoothMessage(float[] orientation_buffer){
-        byte[] message = new byte[6];
+        byte[] message = new byte[8];
         for (int i=0; i<orientation_buffer.length; i ++){
             int tmp = (int) Math.round(Math.toDegrees(orientation_buffer[i]));
             if (tmp < 0) {
@@ -61,6 +62,10 @@ public class SensorActivity extends AppCompatActivity implements SensorEventList
             }
             message[2*i+1] = (byte) Math.abs(tmp);
         }
+        SeekBar speed_val = findViewById(R.id.speed);
+        CheckBox start_stop = findViewById(R.id.start_stop);
+        message[6] = (byte) (start_stop.isChecked() ? 1 : 0);
+        message[7] = (byte) speed_val.getProgress();
         return message;
     }
 
